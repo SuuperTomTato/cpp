@@ -1,49 +1,69 @@
 #include "Executor.h"
 
-// 根据朝向和指令更新位置
-    void Executor::MoveForward() {
-        switch (pos.heading) {
-            case 'N': pos.y += 1; break;
-            case 'S': pos.y -= 1; break;
-            case 'E': pos.x += 1; break;
-            case 'W': pos.x -= 1; break;
+// 前进指令
+void MoveCommand::DoOperate(int& x, int& y, char& heading, bool& fast){
+        int steps = fast ? 2 : 1; // 加速状态前进2格
+        for (int i = 0; i < steps; ++i) {
+            switch (heading) {
+                case 'N': y += 1; break;
+                case 'S': y -= 1; break;
+                case 'E': x += 1; break;
+                case 'W': x -= 1; break;
+            }
         }
     }
 
- // 更新朝向
-    void Executor::TurnLeft() {
-        switch (pos.heading) {
-            case 'N': pos.heading = 'W'; break;
-            case 'W': pos.heading = 'S'; break;
-            case 'S': pos.heading = 'E'; break;
-            case 'E': pos.heading = 'N'; break;
+// 左转指令
+void TurnLeftCommand::DoOperate(int& x, int& y, char& heading, bool& fast){
+        if (fast) { // 加速状态，先前进1格
+            MoveCommand move;
+            bool unfast=!fast;
+            move.DoOperate(x, y, heading,unfast);
+        }
+        switch (heading) {
+            case 'N': heading = 'W'; break;
+            case 'S': heading = 'E'; break;
+            case 'E': heading = 'N'; break;
+            case 'W': heading = 'S'; break;
         }
     }
 
-    void Executor::TurnRight() {
-        switch (pos.heading) {
-            case 'N': pos.heading = 'E'; break;
-            case 'E': pos.heading = 'S'; break;
-            case 'S': pos.heading = 'W'; break;
-            case 'W': pos.heading = 'N'; break;
+// 右转指令
+void TurnRightCommand::DoOperate(int& x, int& y, char& heading, bool& fast){
+        if (fast) { // 加速状态，先前进1格
+            MoveCommand move;
+            bool unfast=!fast;
+            move.DoOperate(x, y, heading,unfast);
+        }
+        switch (heading) {
+            case 'N': heading = 'E'; break;
+            case 'S': heading = 'W'; break;
+            case 'E': heading = 'S'; break;
+            case 'W': heading = 'N'; break;
         }
     }
+//改变加速状态
+void FastCommand::DoOperate(int& x, int& y, char& heading, bool& fast){
+        fast=!fast;
+}
 
+    // 批量执行指令
+    void Executor::ExecuteCommands(const string& commands){
+        for (char command : commands) {
+            switch (command) {
+                case 'M': moveCommand.DoOperate(pos.x,pos.y,pos.heading,pos.fast);break;
+                case 'L': turnLeftCommand.DoOperate(pos.x,pos.y,pos.heading,pos.fast);break;
+                case 'R': turnRightCommand.DoOperate(pos.x,pos.y,pos.heading,pos.fast);break;
+                case 'F': fastCommand.DoOperate(pos.x,pos.y,pos.heading,pos.fast);break;
+            }
+    }
+    }
+
+    //初始化位置和朝向
     void Executor::Initialize(int initX, int initY, char initHeading) {
         pos.x = initX;
         pos.y = initY;
         pos.heading = initHeading;
-    }
-
-    // 执行指令
-    void Executor::ExecuteCommands(const string& commands) {
-        for (char command : commands) {
-            switch (command) {
-                case 'M': MoveForward(); break;
-                case 'L': TurnLeft(); break;
-                case 'R': TurnRight(); break;
-            }
-        }
     }
 
     // 获取当前位置和朝向
@@ -57,7 +77,10 @@
         currentPos=pos;
     }
 
-
+     //查询加速状态
+    bool Executor::IsFast(){
+        return pos.fast;
+    }
 
     Position test(int x,int y,char heading,const string& commands){
     Executor car;

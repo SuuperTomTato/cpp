@@ -5,25 +5,33 @@
 TEST(ExecutorTest, test_case1)
 {  
     Position target;
-    target={3,2,'E'};
-    ASSERT_EQ(target,(test(3,2,'E',"")));
+    target={0,0,'N',true};
+    ASSERT_EQ(target,(test(0,0,'N',"F")));
 }
 
 TEST(ExecutorTest, test_case2)
 {  
     Position target;
-    target={0,0,'W'};
-    ASSERT_EQ(target,(test(0,0,'N',"LLLLL")));
+    target={0,3,'N',false};
+    ASSERT_EQ(target,(test(0,0,'N',"FMFM")));
 }
+
 TEST(ExecutorTest, test_case3)
 {  
     Position target;
-    target={0,3,'N'};
-    ASSERT_EQ(target,(test(0,0,'N',"MMM")));
+    target={0,1,'E',false};
+    ASSERT_EQ(target,(test(0,0,'N',"FRF")));
 }
+
 TEST(ExecutorTest, test_case4)
 {  
     Position target;
-    target={6,2,'E'};
-    ASSERT_EQ(target,(test(5,0,'E',"MLMMR")));
+    target={0,1,'W',false};
+    ASSERT_EQ(target,(test(0,0,'N',"FLF")));
+}
+TEST(ExecutorTest, test_case5)
+{  
+    Position target;
+    target={-8,7,'W',false};
+    ASSERT_EQ(target,(test(0,0,'N',"FMMMLMMMMF")));
 }
