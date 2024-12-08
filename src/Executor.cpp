@@ -1,92 +1,71 @@
 #include "Executor.h"
+// Move方法：根据当前朝向和状态逐步移动
+     void PoseHandler::Move() {
+        // 单次移动一格，考虑倒车状态
+        int step = pos.reverse ? -1 : 1;
+        switch (pos.heading) {
+            case 'N': pos.y += step; break;
+            case 'S': pos.y -= step; break;
+            case 'E': pos.x += step; break;
+            case 'W': pos.x -= step; break;
+        }
+    }
 
-// 前进指令
-void MoveCommand::DoOperate(int& x, int& y, char& heading, bool& fast){
-        int steps = fast ? 2 : 1; // 加速状态前进2格
-        for (int i = 0; i < steps; ++i) {
-            switch (heading) {
-                case 'N': y += 1; break;
-                case 'S': y -= 1; break;
-                case 'E': x += 1; break;
-                case 'W': x -= 1; break;
+// MoveSteps方法：处理多步移动逻辑
+    void PoseHandler::MoveSteps() {
+        int moves = pos.fast ? 2 : 1; // 加速状态下移动两次
+        for (int i = 0; i < moves; ++i) {
+            Move(); // 调用Move实现逐格移动
+        }
+    }
+
+// 右转方法：更新朝向，fast状态下移动一次
+    void PoseHandler::TurnRight() {
+        if (pos.fast) Move(); //fast状态下移动一次
+        if(pos.reverse)
+        pos.heading = "ESWN"[(GetHeadingIndex() + 3) % 4]; // 倒车则左转
+        else pos.heading = "ESWN"[(GetHeadingIndex() + 1) % 4]; //计算右转后的新朝向
+    }
+
+// 左转方法：更新朝向，fast状态下移动一次
+    void PoseHandler::TurnLeft() {
+        if (pos.fast) Move(); // fast状态下移动一次
+        if(pos.reverse)
+        pos.heading = "ESWN"[(GetHeadingIndex() + 1) % 4]; //倒车则右转
+        else pos.heading = "ESWN"[(GetHeadingIndex() + 3) % 4]; // 计算左转后的新朝向
+    }
+
+
+// 获取当前状态
+    void PoseHandler::GetPos(Position& currentpos) const {
+        currentpos=pos;
+    }
+
+// 执行一系列指令，使用表驱动方式提高可扩展性
+    void Executor::ExecuteCommands(const string& commands) {
+        // 定义指令字符与对应指令处理器的映射表
+        static const unordered_map<char, function<void(PoseHandler&)>> commandMap = {
+            {'M', MoveCommand()},       // 移动
+            {'L', TurnLeftCommand()},   // 左转
+            {'R', TurnRightCommand()},  // 右转
+            {'F', FastCommand()},       // 加速切换
+            {'B', ReverseCommand()},    // 倒车切换
+        };
+
+        // 遍历指令字符串，逐一执行指令
+        for (char cmd : commands) {
+            auto it = commandMap.find(cmd); // 在映射表中查找指令
+            if (it != commandMap.end()) {
+                it->second(handler); // 执行对应指令
             }
         }
     }
-
-// 左转指令
-void TurnLeftCommand::DoOperate(int& x, int& y, char& heading, bool& fast){
-        if (fast) { // 加速状态，先前进1格
-            MoveCommand move;
-            bool unfast=!fast;
-            move.DoOperate(x, y, heading,unfast);
-        }
-        switch (heading) {
-            case 'N': heading = 'W'; break;
-            case 'S': heading = 'E'; break;
-            case 'E': heading = 'N'; break;
-            case 'W': heading = 'S'; break;
-        }
-    }
-
-// 右转指令
-void TurnRightCommand::DoOperate(int& x, int& y, char& heading, bool& fast){
-        if (fast) { // 加速状态，先前进1格
-            MoveCommand move;
-            bool unfast=!fast;
-            move.DoOperate(x, y, heading,unfast);
-        }
-        switch (heading) {
-            case 'N': heading = 'E'; break;
-            case 'S': heading = 'W'; break;
-            case 'E': heading = 'S'; break;
-            case 'W': heading = 'N'; break;
-        }
-    }
-//改变加速状态
-void FastCommand::DoOperate(int& x, int& y, char& heading, bool& fast){
-        fast=!fast;
-}
-
-    // 批量执行指令
-    void Executor::ExecuteCommands(const string& commands){
-        for (char command : commands) {
-            switch (command) {
-                case 'M': moveCommand.DoOperate(pos.x,pos.y,pos.heading,pos.fast);break;
-                case 'L': turnLeftCommand.DoOperate(pos.x,pos.y,pos.heading,pos.fast);break;
-                case 'R': turnRightCommand.DoOperate(pos.x,pos.y,pos.heading,pos.fast);break;
-                case 'F': fastCommand.DoOperate(pos.x,pos.y,pos.heading,pos.fast);break;
-            }
-    }
-    }
-
-    //初始化位置和朝向
-    void Executor::Initialize(int initX, int initY, char initHeading) {
-        pos.x = initX;
-        pos.y = initY;
-        pos.heading = initHeading;
-    }
-
-    // 获取当前位置和朝向
-    void Executor::GetStatus(int& currentX, int& currentY, char& currentHeading) const {
-        currentX = pos.x;
-        currentY = pos.y;
-        currentHeading = pos.heading;
-    }
-
-    void Executor::GetPos(Position& currentPos)const{
-        currentPos=pos;
-    }
-
-     //查询加速状态
-    bool Executor::IsFast(){
-        return pos.fast;
-    }
-
-    Position test(int x,int y,char heading,const string& commands){
-    Executor car;
-    Position pos;
-    car.Initialize(x,y,heading);
-    car.ExecuteCommands(commands);
-    car.GetPos(pos);
+    
+    Position test(int x, int y, char heading, const string& commands) {
+    Position pos0{x,y,heading,false,false};
+    Executor executor(pos0); // 创建Executor对象
+    executor.ExecuteCommands(commands); // 执行指令
+    Position pos; // 用于返回的Position结构
+    executor.GetStatus(pos); // 获取执行后的状态
     return pos;
 }
