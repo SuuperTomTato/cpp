@@ -43,8 +43,13 @@
 
 // 执行一系列指令，使用表驱动方式提高可扩展性
     void Executor::ExecuteCommands(const string& commands) {
+        if(vehicle)
+        {
+            vehicle->ExecuteCommands(handler,commands);
+        }
         // 定义指令字符与对应指令处理器的映射表
-        static const unordered_map<char, function<void(PoseHandler&)>> commandMap = {
+        else
+        {static const unordered_map<char, function<void(PoseHandler&)>> commandMap = {
             {'M', MoveCommand()},       // 移动
             {'L', TurnLeftCommand()},   // 左转
             {'R', TurnRightCommand()},  // 右转
@@ -59,13 +64,49 @@
                 it->second(handler); // 执行对应指令
             }
         }
+        }
     }
-    
-    Position test(int x, int y, char heading, const string& commands) {
+//对跑车执行一系列指令
+    void SportsCar::ExecuteCommands(PoseHandler& handler,const string& commands)const{
+          // 定义指令字符与对应指令处理器的映射表
+        static const unordered_map<char,function<void(PoseHandler&)>> commandMap = {
+        {'M', [](PoseHandler& handler) { handler.Move(); handler.Move(); }}, // 前进两格
+        {'L', [](PoseHandler& handler) { handler.TurnLeft(); handler.Move(); }}, // 左转后前进一步
+        {'R', [](PoseHandler& handler) { handler.TurnRight(); handler.Move(); }} // 右转后前进一步
+        };
+        // 遍历指令字符串，逐一执行指令
+        for (char cmd : commands) {
+            auto it = commandMap.find(cmd); // 在映射表中查找指令
+            if (it != commandMap.end()) {
+                it->second(handler); // 执行对应指令
+            }
+        }
+    }
+//对巴士执行一系列指令
+    void Bus::ExecuteCommands(PoseHandler& handler,const string& commands)const{
+          // 定义指令字符与对应指令处理器的映射表
+        static const unordered_map<char, function<void(PoseHandler&)>> commandMap =  {
+        {'M', [](PoseHandler& handler) { handler.Move(); }}, // 前进一步
+        {'L', [](PoseHandler& handler) { handler.Move(); handler.TurnLeft(); }}, // 先前进一步再左转
+        {'R', [](PoseHandler& handler) { handler.Move(); handler.TurnRight(); }} // 先前进一步再右转
+    };
+        // 遍历指令字符串，逐一执行指令
+        for (char cmd : commands) {
+            auto it = commandMap.find(cmd); // 在映射表中查找指令
+            if (it != commandMap.end()) {
+                it->second(handler); // 执行对应指令
+            }
+        }
+    }
+    Position test(int x, int y, char heading,const char vehicle,const string& commands) {
     Position pos0{x,y,heading,false,false};
-    Executor executor(pos0); // 创建Executor对象
-    executor.ExecuteCommands(commands); // 执行指令
-    Position pos; // 用于返回的Position结构
-    executor.GetStatus(pos); // 获取执行后的状态
-    return pos;
-}
+    switch(vehicle){
+    case 'S':{SportsCar s;Executor executor(pos0,&s);executor.ExecuteCommands(commands);
+    Position pos; executor.GetStatus(pos); return pos;}
+    case 'B':{Bus b;Executor executor(pos0,&b);executor.ExecuteCommands(commands);
+    Position pos; executor.GetStatus(pos); return pos;}
+    default :{Executor executor(pos0);executor.ExecuteCommands(commands);
+    Position pos; executor.GetStatus(pos); return pos;}
+    }    
+    return pos0;
+    }

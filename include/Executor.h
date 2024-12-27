@@ -86,11 +86,29 @@ public:
     void operator()(PoseHandler& handler) const { handler.ToggleReverse(); }
 };
 // Executor类：负责解析和执行指令
+class Vehicle {
+public:
+    virtual ~Vehicle() = default;
+    virtual void ExecuteCommands(PoseHandler& handler,const string& commands)const=0;
+};
+
+// 跑车类
+class SportsCar : public Vehicle {
+public:
+    void ExecuteCommands(PoseHandler& handler,const string& commands)const;
+};
+
+// Bus类
+class Bus : public Vehicle {
+public:
+    void ExecuteCommands(PoseHandler& handler,const string& commands)const;
+};
+
 class Executor {
 public:
     // 构造函数：初始化车辆的状态
-    Executor(Position initpos)
-        : handler(initpos){};
+     Executor(Position initpos, const Vehicle* vehicleType = nullptr)
+        : handler(initpos), vehicle(vehicleType) {}
 
     // 执行一系列指令，使用表驱动方式提高可扩展性
     void ExecuteCommands(const string& commands);
@@ -102,7 +120,8 @@ public:
 
 private:
     PoseHandler handler; // 管理车辆状态的PoseHandler实例
+    const Vehicle* vehicle;
 };
 
 
-Position test(int x,int y,char heading,const string& commands);
+Position test(int x,int y,char heading,const char vehicle, const string& commands);
